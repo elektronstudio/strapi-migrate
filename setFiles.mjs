@@ -1,12 +1,4 @@
-import knex from "knex";
-import PQueue from "p-queue";
-
-import { connection4 } from "./utils.mjs";
-
-const db = knex({
-  client: "pg",
-  connection: connection4,
-});
+import { db, queue } from "./utils.mjs";
 
 import files from "./data/files.json" assert { type: "json" };
 
@@ -75,8 +67,6 @@ const insertFiles = files.map((f) => {
 // await fs.writeFile("./data/files3.json", JSON.stringify(insertFiles, null, 2), {
 //   encoding: "utf8",
 // });
-
-const queue = new PQueue({ concurrency: 8 });
 
 await db.raw("TRUNCATE TABLE files RESTART IDENTITY CASCADE");
 insertFiles.forEach(async (file) => {
