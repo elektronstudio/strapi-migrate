@@ -1,3 +1,52 @@
+import { $fetch } from "ohmyfetch";
+import { url4 } from "./utils.mjs";
+import { queue } from "./utils.mjs";
+
+const migrateProject = (e) => {
+  let en = {};
+  let et = {};
+  /* e.id is ignored */
+  en.title = e.title;
+  en.slug = e.slug;
+
+  en.publishedAt = e.published_at;
+  en.createdAt = e.created_at;
+  en.updatedAt = e.updated_at;
+
+  en.streamkey = e.streamkey;
+  en.fienta_id = e.fienta_id;
+  en.description = e.description_english;
+
+  //   en.intro = e.intro_english
+  //     ? e.intro_english
+  //     : getIntro(e.description_english);
+
+  //   /* e.priority */
+
+  //   en.pinned = !!e.pinned;
+  //   en.archived = !!e.archived;
+
+  //   en.authors = e.authors;
+  //   en.details = e.details;
+
+  //   en.live = e.live; // ?
+  //   en.live_url = e.live_url; // ?
+
+  en.images = e.images ? e.images.map((i) => i.id) : null;
+  //   en.thumbnail = e.thumbnail
+  //     ? e.thumbnail.id
+  //     : e.images
+  //     ? e.images[0].id
+  //     : null;
+
+  et.title = e.title;
+  et.description = e.description_estonian;
+
+  //et.intro = e.intro ? e.intro : getIntro(e.description_estonian);
+
+  return { en, et };
+};
+
 /*
 
 id                  "id": 26,
@@ -19,3 +68,48 @@ intro.en,desc_en    "intro_english": "Anthropologies of Space is an interdiscipl
 thumbnail           thumbnails? | images.formats.thumbnail?                    
 images[id]          "images": { "id", ....}
 */
+
+async function insertProject({ en, et }) {
+  // Create english item
+  const {
+    data: { id: engId },
+  } = await $fetch("/projects", {
+    method: "POST",
+    baseURL: url4,
+    body: {
+      data: { ...en, publishedAt: new Date().toISOString() },
+    },
+  }).catch((e) => console.log(e));
+
+  // Create estonian item and link it to English item
+  const { id: etId } = await $fetch(`/projects/${engId}/localizations`, {
+    method: "POST",
+    baseURL: url4,
+    body: { ...et, locale: "et" },
+  }).catch((e) => console.log(e));
+
+  // Publish estonian item (can not pass publishedAt to previous fetch call)
+  await $fetch(`/projects/${etId}`, {
+    method: "PUT",
+    baseURL: url4,
+    body: { data: { publishedAt: new Date().toISOString() } },
+  }).catch((e) => console.log(e));
+}
+
+import projects from "./data/projects.json" assert { type: "json" };
+import { log } from "./utils.mjs";
+
+projects.forEach(async (project) => {
+  await queue.add(() => insertProject(migrateProject(project)));
+});
+
+await queue.onIdle();
+
+const { data: data3 } = await $fetch("/projects", {
+  method: "GET",
+  baseURL: url4,
+  params: { populate: "*" },
+}).catch((e) => console.log(e));
+
+log(projects.length);
+log(data3.length);
