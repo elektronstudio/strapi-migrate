@@ -18,4 +18,4 @@ export const db = knex({
   connection: connection4,
 });
 
-export const queue = new PQueue({ concurrency: 8 });
+export const queue = new PQueue({ concurrency: 16 });

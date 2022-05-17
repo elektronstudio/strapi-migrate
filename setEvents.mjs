@@ -1,5 +1,5 @@
 import { $fetch } from "ohmyfetch";
-import { url4, queue, log } from "./utils.mjs";
+import { url4, queue, log, db } from "./utils.mjs";
 
 import events from "./data/events.json" assert { type: "json" };
 
@@ -13,9 +13,9 @@ const migrateEvent = (e) => {
   en.start_at = e.start_at;
   en.end_at = e.end_at;
 
-  en.published_at = e.published_at;
   en.created_at = e.created_at;
   en.updated_at = e.updated_at;
+  en.published_at = e.published_at;
 
   // en.streamkey = e.streamkey;
   // en.fienta_id = e.fienta_id;
@@ -44,6 +44,9 @@ const migrateEvent = (e) => {
   et.description = e.description_estonian;
 
   // et.intro = e.intro ? e.intro : getIntro(e.description_estonian);
+
+  en.created_by_id = 1;
+  en.updated_by_id = 1;
 
   return { en, et };
 };
@@ -82,54 +85,46 @@ async function insertEvent({ en, et }) {
     method: "POST",
     baseURL: url4,
     body: {
-      data: { ...en, publishedAt: new Date().toISOString() },
+      data: en,
     },
   }).catch((e) => console.log(e));
 
   // Create estonian item and link it to English item
-  const { id: etId, error } = await $fetch(`/events/${engId}/localizations`, {
+  const { id: etId } = await $fetch(`/events/${engId}/localizations`, {
     method: "POST",
     baseURL: url4,
     body: { ...et, locale: "et" },
   }).catch((e) => console.log(e));
 
-  // Publish estonian item (can not pass publishedAt to previous fetch call)
+  // Publish estonian item (can not pass published_at to previous fetch call)
   await $fetch(`/events/${etId}`, {
     method: "PUT",
     baseURL: url4,
-    body: { data: { publishedAt: new Date().toISOString() } },
+    body: {
+      data: {
+        publishedAt: en.published_at,
+        created_by_id: 1,
+        updated_by_id: 1,
+      },
+    },
   }).catch((e) => console.log(e));
+
+  await db("events")
+    .where({ id: engId })
+    .update({ created_at: en.created_at, updated_at: en.updated_at });
+
+  await db("events")
+    .where({ id: etId })
+    .update({ created_at: en.created_at, updated_at: en.updated_at });
 }
 
-// async function insertEventTranslations({ en, et }) {
-//   // Create estonian item and link it to English item
-//   const { id: etId, error } = await $fetch(`/events/${en.id}/localizations`, {
-//     method: "POST",
-//     baseURL: url4,
-//     body: { ...et, locale: "et" },
-//   }).catch((e) => console.log(e));
-
-//   // Publish estonian item (can not pass publishedAt to previous fetch call)
-//   await $fetch(`/events/${etId}`, {
-//     method: "PUT",
-//     baseURL: url4,
-//     body: { data: { publishedAt: new Date().toISOString() } },
-//   }).catch((e) => console.log(e));
-// }
-
-//log(events.reverse());
+await db.raw("TRUNCATE TABLE events RESTART IDENTITY CASCADE");
 
 events.forEach(async (project) => {
   await queue.add(() => insertEvent(migrateEvent(project)));
 });
 
 await queue.onIdle();
-
-// events.slice(0, 10).forEach(async (project) => {
-//   await queue.add(() => insertEventTranslations(migrateEvent(project)));
-// });
-
-// await queue.onIdle();
 
 const { data: data3 } = await $fetch("/events", {
   method: "GET",
