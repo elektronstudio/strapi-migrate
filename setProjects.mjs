@@ -1,6 +1,7 @@
 import { $fetch } from "ohmyfetch";
-import { url4 } from "./utils.mjs";
-import { queue } from "./utils.mjs";
+import { url4, queue, log } from "./utils.mjs";
+
+import projects from "./data/projects.json" assert { type: "json" };
 
 const migrateProject = (e) => {
   let en = {};
@@ -15,7 +16,7 @@ const migrateProject = (e) => {
 
   en.streamkey = e.streamkey;
   en.fienta_id = e.fienta_id;
-  en.description = e.description_english;
+  en.description = e.description_english || e.description_estonian;
 
   //   en.intro = e.intro_english
   //     ? e.intro_english
@@ -80,21 +81,6 @@ async function insertProject({ en, et }) {
       data: { ...en, publishedAt: new Date().toISOString() },
     },
   }).catch((e) => console.log(e));
-  /*
-  // Create estonian item and link it to English item
-  const { id: etId } = await $fetch(`/projects/${engId}/localizations`, {
-    method: "POST",
-    baseURL: url4,
-    body: { ...et, locale: "et" },
-  }).catch((e) => console.log(e));
-
-  // Publish estonian item (can not pass publishedAt to previous fetch call)
-  await $fetch(`/projects/${etId}`, {
-    method: "PUT",
-    baseURL: url4,
-    body: { data: { publishedAt: new Date().toISOString() } },
-  }).catch((e) => console.log(e));
-  */
 }
 
 async function insertProjectTranslations({ en, et }) {
@@ -112,9 +98,6 @@ async function insertProjectTranslations({ en, et }) {
     body: { data: { publishedAt: new Date().toISOString() } },
   }).catch((e) => console.log(e));
 }
-
-import projects from "./data/projects.json" assert { type: "json" };
-import { log } from "./utils.mjs";
 
 projects.forEach(async (project) => {
   await queue.add(() => insertProject(migrateProject(project)));

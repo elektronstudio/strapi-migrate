@@ -1,10 +1,12 @@
 import { $fetch } from "ohmyfetch";
-import { url4 } from "./utils.mjs";
+import { url4, queue, log } from "./utils.mjs";
+
+import events from "./data/events.json" assert { type: "json" };
 
 const migrateEvent = (e) => {
   let en = {};
   let et = {};
-  // e.id is ignored
+  // en.id = e.id;
   en.title = e.title;
   en.slug = e.slug;
 
@@ -15,29 +17,33 @@ const migrateEvent = (e) => {
   en.created_at = e.created_at;
   en.updated_at = e.updated_at;
 
-  en.streamkey = e.streamkey;
-  en.fienta_id = e.fienta_id;
-  en.description = e.description_english;
+  // en.streamkey = e.streamkey;
+  // en.fienta_id = e.fienta_id;
 
-  en.projects = e.festival ? [e.festival.id] : null; // No project?
+  en.description = e.description_english || e.description_estonian;
 
-  en.intro = e.intro_english
-    ? e.intro_english
-    : getIntro(e.description_english);
+  en.projects = e.festival ? [e.festival.id] : [2]; // Past events
 
-  // e.chat
-  // e.priority
-  // e.controls
+  // en.intro = e.intro_english
+  //   ? e.intro_english
+  //   : getIntro(e.description_english);
 
-  en.details = e.details;
-  en.live = !!e.live; // ?
-  en.live_url = e.live_url; // ?
+  // // e.chat
+  // // e.priority
+  // // e.controls
+
+  // en.details = e.details;
+  // en.live = !!e.live; // ?
+  // en.live_url = e.live_url; // ?
+
   en.images = e.images ? e.images.map((i) => i.id) : null;
+
   // en.thumbnail = e.thumbnail ? e.thumbnail.id : e.images ? e.images[0].id : null
 
   et.title = e.title;
   et.description = e.description_estonian;
-  et.intro = e.intro ? e.intro : getIntro(e.description_estonian);
+
+  // et.intro = e.intro ? e.intro : getIntro(e.description_estonian);
 
   return { en, et };
 };
@@ -81,7 +87,7 @@ async function insertEvent({ en, et }) {
   }).catch((e) => console.log(e));
 
   // Create estonian item and link it to English item
-  const { id: etId } = await $fetch(`/events/${engId}/localizations`, {
+  const { id: etId, error } = await $fetch(`/events/${engId}/localizations`, {
     method: "POST",
     baseURL: url4,
     body: { ...et, locale: "et" },
@@ -95,14 +101,35 @@ async function insertEvent({ en, et }) {
   }).catch((e) => console.log(e));
 }
 
-const en = {
-  title: "ccc Some test title",
-};
-const et = {
-  title: "ccc Eesti vark",
-};
+// async function insertEventTranslations({ en, et }) {
+//   // Create estonian item and link it to English item
+//   const { id: etId, error } = await $fetch(`/events/${en.id}/localizations`, {
+//     method: "POST",
+//     baseURL: url4,
+//     body: { ...et, locale: "et" },
+//   }).catch((e) => console.log(e));
 
-await insertEvent({ en, et });
+//   // Publish estonian item (can not pass publishedAt to previous fetch call)
+//   await $fetch(`/events/${etId}`, {
+//     method: "PUT",
+//     baseURL: url4,
+//     body: { data: { publishedAt: new Date().toISOString() } },
+//   }).catch((e) => console.log(e));
+// }
+
+//log(events.reverse());
+
+events.forEach(async (project) => {
+  await queue.add(() => insertEvent(migrateEvent(project)));
+});
+
+await queue.onIdle();
+
+// events.slice(0, 10).forEach(async (project) => {
+//   await queue.add(() => insertEventTranslations(migrateEvent(project)));
+// });
+
+// await queue.onIdle();
 
 const { data: data3 } = await $fetch("/events", {
   method: "GET",
@@ -110,4 +137,5 @@ const { data: data3 } = await $fetch("/events", {
   params: { populate: "*" },
 }).catch((e) => console.log(e));
 
-log(data3);
+log(events.length);
+log(data3.length);
