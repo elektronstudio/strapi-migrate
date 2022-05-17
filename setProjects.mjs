@@ -5,7 +5,7 @@ import { queue } from "./utils.mjs";
 const migrateProject = (e) => {
   let en = {};
   let et = {};
-  /* e.id is ignored */
+  en.id = e.id;
   en.title = e.title;
   en.slug = e.slug;
 
@@ -80,9 +80,26 @@ async function insertProject({ en, et }) {
       data: { ...en, publishedAt: new Date().toISOString() },
     },
   }).catch((e) => console.log(e));
-
+  /*
   // Create estonian item and link it to English item
   const { id: etId } = await $fetch(`/projects/${engId}/localizations`, {
+    method: "POST",
+    baseURL: url4,
+    body: { ...et, locale: "et" },
+  }).catch((e) => console.log(e));
+
+  // Publish estonian item (can not pass publishedAt to previous fetch call)
+  await $fetch(`/projects/${etId}`, {
+    method: "PUT",
+    baseURL: url4,
+    body: { data: { publishedAt: new Date().toISOString() } },
+  }).catch((e) => console.log(e));
+  */
+}
+
+async function insertProjectTranslations({ en, et }) {
+  // Create estonian item and link it to English item
+  const { id: etId } = await $fetch(`/projects/${en.id}/localizations`, {
     method: "POST",
     baseURL: url4,
     body: { ...et, locale: "et" },
@@ -101,6 +118,12 @@ import { log } from "./utils.mjs";
 
 projects.forEach(async (project) => {
   await queue.add(() => insertProject(migrateProject(project)));
+});
+
+await queue.onIdle();
+
+projects.forEach(async (project) => {
+  await queue.add(() => insertProjectTranslations(migrateProject(project)));
 });
 
 await queue.onIdle();
