@@ -1,4 +1,7 @@
 {
+  "scripts": {
+    "run": "NODE_TLS_REJECT_UNAUTHORIZED=0 node setFiles.mjs"
+  },
   "dependencies": {
     "dotenv": "^16.0.1",
     "fs-extra": "^10.1.0",

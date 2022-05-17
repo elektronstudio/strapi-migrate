@@ -1,1 +1,1 @@
-NODE_TLS_REJECT_UNAUTHORIZED=0
+## elektron.art Strapi 3 to 4 migration scripts
