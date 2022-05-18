@@ -1,5 +1,5 @@
 import { $fetch } from "ohmyfetch";
-import { url4, db, queue, log } from "./utils.mjs";
+import { url4, db, queue, log, getIntro } from "./utils.mjs";
 
 import projects from "./data/projects.json" assert { type: "json" };
 
