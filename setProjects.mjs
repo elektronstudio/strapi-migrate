@@ -11,9 +11,9 @@ const migrateProject = (e) => {
   en.title = e.title;
   en.slug = e.slug;
 
-  en.publishedAt = e.published_at;
-  en.createdAt = e.created_at;
-  en.updatedAt = e.updated_at;
+  en.published_at = e.published_at;
+  en.created_at = e.created_at;
+  en.updated_at = e.updated_at;
 
   en.streamkey = e.streamkey;
   en.fienta_id = e.fienta_id;
@@ -85,6 +85,8 @@ async function insertProject({ en, et }) {
     },
   }).catch((e) => console.log(e));
 
+  await new Promise((resolve) => setTimeout(resolve, 1000));
+
   await db("projects")
     .where({ id: enId })
     .update({ created_at: en.created_at, updated_at: en.updated_at });
@@ -124,11 +126,11 @@ projects.forEach(async (project) => {
 
 await queue.onIdle();
 
-projects.forEach(async (project) => {
-  await queue.add(() => insertProjectTranslations(migrateProject(project)));
-});
+// projects.forEach(async (project) => {
+//   await queue.add(() => insertProjectTranslations(migrateProject(project)));
+// });
 
-await queue.onIdle();
+// await queue.onIdle();
 
 const { data: data3 } = await $fetch("/projects", {
   method: "GET",
