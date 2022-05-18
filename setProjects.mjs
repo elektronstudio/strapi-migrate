@@ -1,5 +1,5 @@
 import { $fetch } from "ohmyfetch";
-import { url4, queue, log } from "./utils.mjs";
+import { url4, db, queue, log } from "./utils.mjs";
 
 import projects from "./data/projects.json" assert { type: "json" };
 
@@ -73,14 +73,23 @@ images[id]          "images": { "id", ....}
 async function insertProject({ en, et }) {
   // Create english item
   const {
-    data: { id: engId },
+    data: { id: enId },
   } = await $fetch("/projects", {
     method: "POST",
     baseURL: url4,
     body: {
-      data: { ...en, publishedAt: new Date().toISOString() },
+      data: {
+        ...en,
+        publishedAt: en.published_at || null,
+        created_by_id: 1,
+        updated_by_id: 1,
+      },
     },
   }).catch((e) => console.log(e));
+
+  await db("projects")
+    .where({ id: enId })
+    .update({ created_at: en.created_at, updated_at: en.updated_at });
 }
 
 async function insertProjectTranslations({ en, et }) {
@@ -95,9 +104,21 @@ async function insertProjectTranslations({ en, et }) {
   await $fetch(`/projects/${etId}`, {
     method: "PUT",
     baseURL: url4,
-    body: { data: { publishedAt: new Date().toISOString() } },
+    body: {
+      data: {
+        publishedAt: en.published_at || null,
+        created_by_id: 1,
+        updated_by_id: 1,
+      },
+    },
   }).catch((e) => console.log(e));
+
+  await db("projects")
+    .where({ id: etId })
+    .update({ created_at: en.created_at, updated_at: en.updated_at });
 }
+
+await db.raw("TRUNCATE TABLE projects RESTART IDENTITY CASCADE");
 
 projects.forEach(async (project) => {
   await queue.add(() => insertProject(migrateProject(project)));

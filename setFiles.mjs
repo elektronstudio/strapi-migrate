@@ -1,4 +1,4 @@
-import { db, queue } from "./utils.mjs";
+import { db, queue, getFormat } from "./utils.mjs";
 
 import files from "./data/files.json" assert { type: "json" };
 
@@ -8,24 +8,6 @@ const cdn = (obj) => {
     "fra1.cdn.digitaloceanspaces"
   );
   return obj;
-};
-
-const getFormat = (obj, format) => {
-  if (obj[format]) return obj[format];
-  if (!obj[format] && format === "large" && obj.medium) {
-    return obj.medium;
-  }
-  if (!obj[format] && format === "large" && obj.small) {
-    return obj.small;
-  }
-  if (!obj[format] && format === "medium" && obj.small) {
-    return obj.small;
-  }
-  if (!obj[format] && format === "thumbnail" && obj.small) return obj.small;
-  if (!obj.large && !obj.medium && !obj.small && obj.thumbnail) {
-    return obj.thumbnail;
-  }
-  return null;
 };
 
 const insertFiles = files.map((f) => {

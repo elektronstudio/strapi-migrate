@@ -1,5 +1,5 @@
 import { $fetch } from "ohmyfetch";
-import { url4, queue, log, db } from "./utils.mjs";
+import { url4, queue, log, db, getIntro, getFormat } from "./utils.mjs";
 
 import events from "./data/events.json" assert { type: "json" };
 
@@ -17,33 +17,38 @@ const migrateEvent = (e) => {
   en.updated_at = e.updated_at;
   en.published_at = e.published_at;
 
-  // en.streamkey = e.streamkey;
-  // en.fienta_id = e.fienta_id;
+  en.streamkey = e.streamkey;
+  en.fienta_id = e.fienta_id;
 
   en.description = e.description_english || e.description_estonian;
 
   en.projects = e.festival ? [e.festival.id] : [2]; // Past events
 
-  // en.intro = e.intro_english
-  //   ? e.intro_english
-  //   : getIntro(e.description_english);
+  en.intro = e.intro_english
+    ? e.intro_english
+    : getIntro(e.description_english);
 
+  // en.details = e.details;
   // // e.chat
   // // e.priority
   // // e.controls
-
-  // en.details = e.details;
   // en.live = !!e.live; // ?
   // en.live_url = e.live_url; // ?
 
   en.images = e.images ? e.images.map((i) => i.id) : null;
 
-  // en.thumbnail = e.thumbnail ? e.thumbnail.id : e.images ? e.images[0].id : null
+  en.thumbnail = e.thumbnail
+    ? e.thumbnail.id
+    : /*e.images[0] &&
+      e.images[0].formats &&
+      getFormat(e.images[0].formats, "large")
+    ? e.images[0].id
+    : */ null;
 
   et.title = e.title;
   et.description = e.description_estonian;
 
-  // et.intro = e.intro ? e.intro : getIntro(e.description_estonian);
+  et.intro = e.intro ? e.intro : getIntro(e.description_estonian);
 
   en.created_by_id = 1;
   en.updated_by_id = 1;
@@ -65,16 +70,19 @@ description.et      "description_estonian": "Kafka [vangistatud]\n16-20 Septembe
 published_at        "published_at": "2021-09-10T10:12:41.151Z",
 created_at          "created_at": "2021-09-10T08:28:53.043Z",
 updated_at !        "updated_at": "2021-10-21T12:20:57.005Z",
--                   "chat": true,
-?                   "priority": null,
-?                   "controls": null,
-intro.et            "intro": null,
-intro.en            "intro_english": null,
-details en/et?      "details": null,
-live                "live": null,
-?                   "live_url": null,
 images = [60]       "images": [{ "id": 60, ... }]
 thumbnail(s)?
+intro.et            "intro": null,
+intro.en            "intro_english": null,
+
+details en/et?      "details": null,
+
+"chat": true,
+?                   "priority": null,
+?                   "controls": null,
+live?                "live": null,
+?                   "live_url": null,
+
 */
 
 async function insertEvent({ en, et }) {
@@ -85,7 +93,12 @@ async function insertEvent({ en, et }) {
     method: "POST",
     baseURL: url4,
     body: {
-      data: en,
+      data: {
+        ...en,
+        publishedAt: en.published_at || null,
+        created_by_id: 1,
+        updated_by_id: 1,
+      },
     },
   }).catch((e) => console.log(e));
 
@@ -102,7 +115,7 @@ async function insertEvent({ en, et }) {
     baseURL: url4,
     body: {
       data: {
-        publishedAt: en.published_at,
+        publishedAt: en.published_at || null,
         created_by_id: 1,
         updated_by_id: 1,
       },
