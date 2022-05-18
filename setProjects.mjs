@@ -85,8 +85,6 @@ async function insertProject({ en, et }) {
     },
   }).catch((e) => console.log(e));
 
-  await new Promise((resolve) => setTimeout(resolve, 1000));
-
   await db("projects")
     .where({ id: enId })
     .update({ created_at: en.created_at, updated_at: en.updated_at });
