@@ -7,6 +7,7 @@ const migrateProject = (e) => {
   let en = {};
   let et = {};
   en.id = e.id;
+
   en.title = e.title;
   en.slug = e.slug;
 
@@ -18,14 +19,14 @@ const migrateProject = (e) => {
   en.fienta_id = e.fienta_id;
   en.description = e.description_english || e.description_estonian;
 
-  //   en.intro = e.intro_english
-  //     ? e.intro_english
-  //     : getIntro(e.description_english);
+  en.intro = e.intro_english
+    ? e.intro_english
+    : getIntro(e.description_english);
 
   //   /* e.priority */
 
-  //   en.pinned = !!e.pinned;
-  //   en.archived = !!e.archived;
+  en.pinned = !!e.pinned;
+  en.archived = !!e.archived;
 
   //   en.authors = e.authors;
   //   en.details = e.details;
@@ -34,16 +35,13 @@ const migrateProject = (e) => {
   //   en.live_url = e.live_url; // ?
 
   en.images = e.images ? e.images.map((i) => i.id) : null;
-  //   en.thumbnail = e.thumbnail
-  //     ? e.thumbnail.id
-  //     : e.images
-  //     ? e.images[0].id
-  //     : null;
+
+  en.thumbnail = e.thumbnail ? e.thumbnail.id : null;
 
   et.title = e.title;
   et.description = e.description_estonian;
 
-  //et.intro = e.intro ? e.intro : getIntro(e.description_estonian);
+  et.intro = e.intro ? e.intro : getIntro(e.description_estonian);
 
   return { en, et };
 };
