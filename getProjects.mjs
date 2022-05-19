@@ -2,15 +2,23 @@ import { $fetch } from "ohmyfetch";
 import fs from "fs-extra";
 import { url3 } from "./utils.mjs";
 
-const data = await $fetch("/festivals", {
+const data1 = await $fetch("/festivals", {
   method: "GET",
   baseURL: url3,
   params: { _limit: -1 },
 });
 
-await fs.writeFile("./data/projects.json", JSON.stringify(data, null, 2), {
-  encoding: "utf8",
+const data2 = await $fetch("/festivals", {
+  method: "GET",
+  baseURL: url3,
+  params: { _limit: -1, _publicationState: "preview", published_at_null: true },
 });
+
+const data = [...data1, ...data2].sort((a, b) => a.id - b.id);
+
+await fs.writeFile("./data/projects.json", JSON.stringify(data, null, 2));
+
+console.log(data1.length, data2.length);
 
 /*
 

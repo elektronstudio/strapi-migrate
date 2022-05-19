@@ -1,31 +1,34 @@
 import { $fetch } from "ohmyfetch";
-import { url4, queue, log } from "./utils.mjs";
+import { url4, db, queue, log, getIntro } from "./utils.mjs";
+import fs from "fs-extra";
 
 import projects from "./data/projects.json" assert { type: "json" };
+import filesmap from "./data/filesmap.json" assert { type: "json" };
 
 const migrateProject = (e) => {
   let en = {};
   let et = {};
-  en.id = e.id;
+  en.tmpId = e.id;
+
   en.title = e.title;
   en.slug = e.slug;
 
-  en.publishedAt = e.published_at;
-  en.createdAt = e.created_at;
-  en.updatedAt = e.updated_at;
+  en.published_at = e.published_at;
+  en.created_at = e.created_at;
+  en.updated_at = e.updated_at;
 
   en.streamkey = e.streamkey;
   en.fienta_id = e.fienta_id;
   en.description = e.description_english || e.description_estonian;
 
-  //   en.intro = e.intro_english
-  //     ? e.intro_english
-  //     : getIntro(e.description_english);
+  en.intro = e.intro_english
+    ? e.intro_english
+    : getIntro(e.description_english);
 
   //   /* e.priority */
 
-  //   en.pinned = !!e.pinned;
-  //   en.archived = !!e.archived;
+  en.pinned = !!e.pinned;
+  en.archived = !!e.archived;
 
   //   en.authors = e.authors;
   //   en.details = e.details;
@@ -33,17 +36,14 @@ const migrateProject = (e) => {
   //   en.live = e.live; // ?
   //   en.live_url = e.live_url; // ?
 
-  en.images = e.images ? e.images.map((i) => i.id) : null;
-  //   en.thumbnail = e.thumbnail
-  //     ? e.thumbnail.id
-  //     : e.images
-  //     ? e.images[0].id
-  //     : null;
+  en.images = e.images ? e.images.map((i) => filesmap[i.id].id) : null;
+
+  en.thumbnail = e.thumbnail ? filesmap[e.thumbnail.id].id : null;
 
   et.title = e.title;
   et.description = e.description_estonian;
 
-  //et.intro = e.intro ? e.intro : getIntro(e.description_estonian);
+  et.intro = e.intro ? e.intro : getIntro(e.description_estonian);
 
   return { en, et };
 };
@@ -70,22 +70,36 @@ thumbnail           thumbnails? | images.formats.thumbnail?
 images[id]          "images": { "id", ....}
 */
 
+let projectsMap = {};
+
 async function insertProject({ en, et }) {
   // Create english item
   const {
-    data: { id: engId },
+    data: { id: enId },
   } = await $fetch("/projects", {
     method: "POST",
     baseURL: url4,
     body: {
-      data: { ...en, publishedAt: new Date().toISOString() },
+      data: {
+        ...en,
+        publishedAt: en.published_at || null,
+        created_by_id: 1,
+        updated_by_id: 1,
+      },
     },
   }).catch((e) => console.log(e));
+
+  await db("projects")
+    .where({ id: enId })
+    .update({ created_at: en.created_at, updated_at: en.updated_at });
+
+  projectsMap[en.tmpId] = enId;
 }
 
 async function insertProjectTranslations({ en, et }) {
   // Create estonian item and link it to English item
-  const { id: etId } = await $fetch(`/projects/${en.id}/localizations`, {
+  const enId = projectsMap[en.tmpId];
+  const { id: etId } = await $fetch(`/projects/${enId}/localizations`, {
     method: "POST",
     baseURL: url4,
     body: { ...et, locale: "et" },
@@ -95,9 +109,21 @@ async function insertProjectTranslations({ en, et }) {
   await $fetch(`/projects/${etId}`, {
     method: "PUT",
     baseURL: url4,
-    body: { data: { publishedAt: new Date().toISOString() } },
+    body: {
+      data: {
+        publishedAt: en.published_at || null,
+        created_by_id: 1,
+        updated_by_id: 1,
+      },
+    },
   }).catch((e) => console.log(e));
+
+  await db("projects")
+    .where({ id: etId })
+    .update({ created_at: en.created_at, updated_at: en.updated_at });
 }
+
+await db.raw("TRUNCATE TABLE projects RESTART IDENTITY CASCADE");
 
 projects.forEach(async (project) => {
   await queue.add(() => insertProject(migrateProject(project)));
@@ -110,6 +136,11 @@ projects.forEach(async (project) => {
 });
 
 await queue.onIdle();
+
+await fs.writeFile(
+  "./data/projectsmap.json",
+  JSON.stringify(projectsMap, null, 2)
+);
 
 const { data: data3 } = await $fetch("/projects", {
   method: "GET",
