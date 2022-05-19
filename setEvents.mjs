@@ -2,6 +2,7 @@ import { $fetch } from "ohmyfetch";
 import { url4, queue, log, db, getIntro, getFormat } from "./utils.mjs";
 
 import events from "./data/events.json" assert { type: "json" };
+import projectsmap from "./data/projectsmap.json" assert { type: "json" };
 
 const migrateEvent = (e) => {
   let en = {};
@@ -22,7 +23,7 @@ const migrateEvent = (e) => {
 
   en.description = e.description_english || e.description_estonian;
 
-  en.projects = e.festival ? [e.festival.id] : [2]; // Past events
+  en.projects = e.festival ? [projectsmap[e.festival.id]] : [projectsmap[2]]; // Past events
 
   en.intro = e.intro_english
     ? e.intro_english

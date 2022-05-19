@@ -1,12 +1,13 @@
 import { $fetch } from "ohmyfetch";
 import { url4, db, queue, log, getIntro } from "./utils.mjs";
+import fs from "fs-extra";
 
 import projects from "./data/projects.json" assert { type: "json" };
 
 const migrateProject = (e) => {
   let en = {};
   let et = {};
-  en.id = e.id;
+  en.tmpId = e.id;
 
   en.title = e.title;
   en.slug = e.slug;
@@ -68,6 +69,8 @@ thumbnail           thumbnails? | images.formats.thumbnail?
 images[id]          "images": { "id", ....}
 */
 
+let projectsMap = {};
+
 async function insertProject({ en, et }) {
   // Create english item
   const {
@@ -88,11 +91,14 @@ async function insertProject({ en, et }) {
   await db("projects")
     .where({ id: enId })
     .update({ created_at: en.created_at, updated_at: en.updated_at });
+
+  projectsMap[en.tmpId] = enId;
 }
 
 async function insertProjectTranslations({ en, et }) {
   // Create estonian item and link it to English item
-  const { id: etId } = await $fetch(`/projects/${en.id}/localizations`, {
+  const enId = projectsMap[en.tmpId];
+  const { id: etId } = await $fetch(`/projects/${enId}/localizations`, {
     method: "POST",
     baseURL: url4,
     body: { ...et, locale: "et" },
@@ -124,11 +130,16 @@ projects.forEach(async (project) => {
 
 await queue.onIdle();
 
-// projects.forEach(async (project) => {
-//   await queue.add(() => insertProjectTranslations(migrateProject(project)));
-// });
+projects.forEach(async (project) => {
+  await queue.add(() => insertProjectTranslations(migrateProject(project)));
+});
 
-// await queue.onIdle();
+await queue.onIdle();
+
+await fs.writeFile(
+  "./data/projectsmap.json",
+  JSON.stringify(projectsMap, null, 2)
+);
 
 const { data: data3 } = await $fetch("/projects", {
   method: "GET",
