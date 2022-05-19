@@ -3,6 +3,7 @@ import { url4, queue, log, db, getIntro, getFormat } from "./utils.mjs";
 
 import events from "./data/events.json" assert { type: "json" };
 import projectsmap from "./data/projectsmap.json" assert { type: "json" };
+import filesmap from "./data/filesmap.json" assert { type: "json" };
 
 const migrateEvent = (e) => {
   let en = {};
@@ -36,15 +37,13 @@ const migrateEvent = (e) => {
   // en.live = !!e.live; // ?
   // en.live_url = e.live_url; // ?
 
-  en.images = e.images ? e.images.map((i) => i.id) : null;
+  en.images = e.images ? e.images.map((i) => filesmap[i.id].id) : null;
 
   en.thumbnail = e.thumbnail
-    ? e.thumbnail.id
-    : /*e.images[0] &&
-      e.images[0].formats &&
-      getFormat(e.images[0].formats, "large")
-    ? e.images[0].id
-    : */ null;
+    ? filesmap[e.thumbnail.id].id
+    : en.images
+    ? en.images[0]
+    : null;
 
   et.title = e.title;
   et.description = e.description_estonian;
