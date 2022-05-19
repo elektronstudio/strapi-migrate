@@ -1,4 +1,5 @@
-import { db, queue, getFormat } from "./utils.mjs";
+import { db, singleQueue, getFormat } from "./utils.mjs";
+import fs from "fs-extra";
 
 import files from "./data/files.json" assert { type: "json" };
 
@@ -10,7 +11,11 @@ const cdn = (obj) => {
   return obj;
 };
 
+const filesmap = {};
+
 const insertFiles = files.map((f) => {
+  f.tmpId = f.id;
+  delete f.id;
   f.alternative_text = f.alternativeText || "";
   delete f.alternativeText;
   f.preview_url = f.previewUrl || "";
@@ -51,11 +56,16 @@ const insertFiles = files.map((f) => {
 // });
 
 await db.raw("TRUNCATE TABLE files RESTART IDENTITY CASCADE");
-insertFiles.forEach(async (file) => {
-  await queue.add(() => db("files").insert(file));
+
+insertFiles.forEach(async (file, i) => {
+  filesmap[file.tmpId] = { id: i + 1, name1: files[i].name, name2: file.name };
+  delete file.tmpId;
+  await singleQueue.add(() => db("files").insert(file));
 });
 
-await queue.onIdle();
+await singleQueue.onIdle();
+
+await fs.writeFile("./data/filesmap.json", JSON.stringify(filesmap, null, 2));
 
 const count = await db("files").count("*");
 console.log("Source: ", insertFiles.length);

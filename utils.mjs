@@ -20,6 +20,8 @@ export const db = knex({
 
 export const queue = new PQueue({ concurrency: 16 });
 
+export const singleQueue = new PQueue({ concurrency: 1 });
+
 export const getFormat = (obj, format) => {
   if (obj[format]) return obj[format];
   if (!obj[format] && format === "large" && obj.medium) {

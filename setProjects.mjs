@@ -3,6 +3,7 @@ import { url4, db, queue, log, getIntro } from "./utils.mjs";
 import fs from "fs-extra";
 
 import projects from "./data/projects.json" assert { type: "json" };
+import filesmap from "./data/filesmap.json" assert { type: "json" };
 
 const migrateProject = (e) => {
   let en = {};
@@ -35,9 +36,9 @@ const migrateProject = (e) => {
   //   en.live = e.live; // ?
   //   en.live_url = e.live_url; // ?
 
-  en.images = e.images ? e.images.map((i) => i.id) : null;
+  en.images = e.images ? e.images.map((i) => filesmap[i.id].id) : null;
 
-  en.thumbnail = e.thumbnail ? e.thumbnail.id : null;
+  en.thumbnail = e.thumbnail ? filesmap[e.thumbnail.id].id : null;
 
   et.title = e.title;
   et.description = e.description_estonian;
