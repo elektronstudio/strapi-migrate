@@ -30,11 +30,11 @@ const migrateEvent = (e) => {
     ? e.intro_english
     : getIntro(e.description_english);
 
-  // en.details = e.details;
+  en.details = e.details;
   // // e.chat
   // // e.priority
-  // // e.controls
-  // en.live = !!e.live; // ?
+  en.settings = e.controls;
+  en.live = !!e.live;
   // en.live_url = e.live_url; // ?
 
   en.images = e.images ? e.images.map((i) => filesmap[i.id].id) : null;
@@ -49,6 +49,8 @@ const migrateEvent = (e) => {
   et.description = e.description_estonian;
 
   et.intro = e.intro ? e.intro : getIntro(e.description_estonian);
+
+  et.details = e.details;
 
   en.created_by_id = 1;
   en.updated_by_id = 1;

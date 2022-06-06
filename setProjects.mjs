@@ -25,25 +25,23 @@ const migrateProject = (e) => {
     ? e.intro_english
     : getIntro(e.description_english);
 
-  //   /* e.priority */
-
   en.pinned = !!e.pinned;
   en.archived = !!e.archived;
 
-  //   en.authors = e.authors;
-  //   en.details = e.details;
-
-  //   en.live = e.live; // ?
-  //   en.live_url = e.live_url; // ?
+  en.authors = e.authors ? e.authors : null;
+  en.details = e.details ? e.details : null;
 
   en.images = e.images ? e.images.map((i) => filesmap[i.id].id) : null;
 
   en.thumbnail = e.thumbnail ? filesmap[e.thumbnail.id].id : null;
 
+  // Estonian
+
   et.title = e.title;
   et.description = e.description_estonian;
 
   et.intro = e.intro ? e.intro : getIntro(e.description_estonian);
+  et.details = en.details;
 
   return { en, et };
 };
