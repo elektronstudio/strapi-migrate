@@ -1,0 +1,34 @@
+<form>
+  <!-- Can be multiple files if you setup "collection" instead of "model" -->
+  <input type="file" name="media" />
+  <input type="text" name="path" />
+  <input type="submit" value="Submit" />
+</form>
+
+<script type="text/javascript">
+  const form = document.querySelector("form");
+
+  form.addEventListener("submit", async (e) => {
+    e.preventDefault();
+
+    const data = {};
+    const formData = new FormData();
+
+    form.elements.forEach(({ name, type, value, files, ...element }) => {
+      if (!["submit", "file"].includes(type)) {
+        data[name] = value;
+      } else if (type === "file") {
+        files.forEach((file) => {
+          formData.append(`files.${name}`, file, file.name);
+        });
+      }
+    });
+
+    formData.append("data", JSON.stringify(data));
+
+    await fetch("http://localhost:8080/api/medias", {
+      method: "post",
+      body: formData,
+    });
+  });
+</script>

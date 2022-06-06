@@ -2,6 +2,8 @@ import "dotenv/config";
 import knex from "knex";
 import PQueue from "p-queue";
 
+export const messagesUrl = process.env.MESSAGES_URL;
+
 export const url3 = process.env.API_URL_3;
 
 export const url4 = process.env.API_URL_4;
@@ -17,6 +19,8 @@ export const db = knex({
   client: "pg",
   connection: connection4,
 });
+
+export const largeQueue = new PQueue({ concurrency: 32 });
 
 export const queue = new PQueue({ concurrency: 16 });
 
