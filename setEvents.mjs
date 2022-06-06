@@ -33,7 +33,7 @@ const migrateEvent = (e) => {
   en.details = e.details;
   // // e.chat
   // // e.priority
-  en.settings = e.controls;
+  en.controls = e.controls;
   en.live = !!e.live;
   // en.live_url = e.live_url; // ?
 
